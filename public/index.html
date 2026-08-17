@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وكيل التنفيذ الذكي</title>
+<style>
+:root {
+  --bg: #0b0e14; --card: #121824; --card2: #1a2332; --border: #223048;
+  --text: #e6edf7; --muted: #8aa0bd; --gold: #f0b90b;
+  --pos: #16c784; --neg: #ea3943; --accent: #4f8cff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: "Segoe UI", Tahoma, Arial, sans-serif; font-size: 14px; }
+.container { max-width: 1080px; margin: 0 auto; padding: 18px; }
+header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+header h1 { font-size: 19px; }
+header .sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; border: 1px solid var(--border); background: var(--card2); }
+.pill.online { color: var(--pos); border-color: var(--pos); }
+.pill.offline { color: var(--neg); border-color: var(--neg); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
+.section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+.section h2 { font-size: 15px; margin-bottom: 12px; color: var(--gold); }
+.card { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+.metric-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.metric { flex: 1; min-width: 120px; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+.metric .lbl { color: var(--muted); font-size: 11px; }
+.metric .val { font-size: 19px; font-weight: 700; margin-top: 4px; }
+label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 5px; }
+input[type=text], input[type=password], input[type=number], input[type=url] {
+  width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--card2); color: var(--text); font-size: 13px; font-family: inherit;
+}
+input:focus { outline: none; border-color: var(--gold); }
+button { cursor: pointer; border: none; border-radius: 10px; padding: 10px 18px; font-size: 13px; font-family: inherit; color: #0b0e14; background: var(--gold); font-weight: 600; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+button.green { background: var(--pos); color: #06120d; }
+button.red { background: var(--neg); color: #fff; }
+button.small { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+tr:last-child td { border-bottom: none; }
+.badge { padding: 3px 9px; border-radius: 8px; font-size: 11.5px; }
+.badge.up { background: rgba(22,199,132,.15); color: var(--pos); }
+.badge.down { background: rgba(234,57,67,.15); color: var(--neg); }
+.badge.buy { background: rgba(22,199,132,.15); color: var(--pos); }
+.badge.sell { background: rgba(234,57,67,.15); color: var(--neg); }
+.badge.hold, .badge.keep { background: rgba(79,140,255,.15); color: var(--accent); }
+.badge.watch { background: var(--card2); color: var(--muted); }
+.badge.pending { background: rgba(240,185,11,.15); color: var(--gold); }
+.badge.executed { background: rgba(22,199,132,.2); color: var(--pos); }
+.badge.cancelled { background: var(--card2); color: var(--muted); }
+.muted { color: var(--muted); }
+.log { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; max-height: 300px; overflow-y: auto; font-size: 12.5px; line-height: 1.9; }
+.log p { padding: 4px 0; border-bottom: 1px dashed var(--border); }
+.log p:last-child { border-bottom: none; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; }
+.hint { background: rgba(240,185,11,.08); border: 1px solid rgba(240,185,11,.3); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--gold); margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>📡 وكيل التنفيذ الذكي</h1>
+      <div class="sub">ينفذ توصيات وكيل استراتيجية الاستثمار — متابعة 24/7 مع تقارير دورية</div>
+    </div>
+    <div class="row">
+      <span class="pill" id="stratPill">الاستراتيجية: …</span>
+      <span class="pill" id="sessPill">الجلسة: …</span>
+      <span class="pill" id="autoPill">تنفيذ تلقائي: …</span>
+    </div>
+  </header>
+
+  <div class="hint" id="topHint">⚠️ يتعامل هذا الوكيل مع أموال حقيقية. يُنصح بالتأكد من صحة توصيات الاستراتيجية ومراجعة الأوامر قبل التنفيذ، وعدم تفعيل التنفيذ التلقائي إلا عند الثقة الكاملة بمنصة التنفيذ.</div>
+
+  <div class="section" id="loginSec">
+    <h2>🔐 الاتصال بمنصة التداول</h2>
+    <div class="grid">
+      <div class="card">
+        <label>رابط صفحة المنصة</label>
+        <input type="url" id="platUrl" placeholder="https://trading.example.com" onchange="saveForm()">
+        <label>اسم المستخدم</label>
+        <input type="text" id="platUser" placeholder="username" onchange="saveForm()">
+        <label>كلمة المرور</label>
+        <input type="password" id="platPass" placeholder="********" onchange="saveForm()">
+        <div class="row" style="margin-top:14px">
+          <button id="loginBtn" onclick="doLogin()">تسجيل الدخول</button>
+          <button class="ghost" id="logoutBtn" onclick="doLogout()">🔓 سجل خروجك</button>
+        </div>
+      </div>
+      <div class="card">
+        <label>رمز OTP (يرسله لك النظام)</label>
+        <input type="text" id="otpInput" placeholder="6 أرقام" inputmode="numeric">
+        <div class="row" style="margin-top:14px">
+          <button id="otpBtn" onclick="doOtp()" disabled>تفعيل OTP</button>
+          <button class="ghost small" onclick="doClear()">مسح كل البيانات</button>
+        </div>
+        <div class="muted" style="margin-top:12px;font-size:12px" id="sessInfo">الجلسة غير نشطة. لن يسجل الوكيل خروجاً تلقائياً ما دمت متصلاً، ويبقيه حياً بطلبات دورية.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>📊 حالة المحفظة والاستراتيجية</h2>
+    <div class="metric-row">
+      <div class="metric"><div class="lbl">قيمة المحفظة المستثمرة</div><div class="val" id="mPort">-</div></div>
+      <div class="metric"><div class="lbl">عدد الحيازات</div><div class="val" id="mPos">-</div></div>
+      <div class="metric"><div class="lbl">حالة السوق</div><div class="val" id="mRegime">-</div></div>
+      <div class="metric"><div class="lbl">المعنويات</div><div class="val" id="mSent">-</div></div>
+      <div class="metric"><div class="lbl">أوامر بانتظار التنفيذ</div><div class="val" id="mPending">-</div></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button onclick="runCycle()">▶️ تشغيل دورة الآن</button>
+      <span class="muted" id="lastCycle">آخر دورة: -</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🛒 المحفظة الحالية</h2>
+    <table><thead><tr>
+      <th>الشركة</th><th>القطاع</th><th>المبلغ المستثمر</th><th>آخر تحديث</th>
+    </tr></thead><tbody id="portTb"></tbody></table>
+    <div class="muted" style="margin-top:8px" id="portEmpty">لا توجد حيازات بعد — تُبنى عند تنفيذ أوامر الشراء.</div>
+  </div>
+
+  <div class="section">
+    <h2>⚡ قرارات التنفيذ من الاستراتيجية</h2>
+    <table><thead><tr>
+      <th>الشركة</th><th>الإجراء</th><th>النوع</th><th>المبلغ</th><th>التوافق</th><th>الحالة</th><th>التبرير</th><th></th>
+    </tr></thead><tbody id="decTb"></tbody></table>
+    <div class="muted" style="margin-top:8px" id="decEmpty">اضغط "تشغيل دورة الآن" أو انتظر دورة المتابعة لتوليد القرارات.</div>
+  </div>
+
+  <div class="section">
+    <h2>📜 سجل الأوامر المنفذة</h2>
+    <table><thead><tr>
+      <th>الوقت</th><th>الشركة</th><th>الإجراء</th><th>المبلغ</th><th>النتيجة</th>
+    </tr></thead><tbody id="histTb"></tbody></table>
+    <div class="muted" style="margin-top:8px">سجل العمليات الفعلية.</div>
+  </div>
+
+  <div class="section">
+    <h2>🗞️ التقرير الدوري</h2>
+    <div class="log" id="reportLog">بانتظار أول دورة…</div>
+  </div>
+
+  <div class="section">
+    <h2>⚙️ إعدادات التنفيذ</h2>
+    <div class="grid">
+      <div class="card">
+        <label class="toggle"><input type="checkbox" id="autoExec" onchange="saveSettings()"> تفعيل التنفيذ التلقائي</label>
+        <div class="muted" style="font-size:12px;margin-top:6px">عند التفعيل، يُرسل الوكيل أوامر الشراء/البيع إلى منفذ التنفيذ تلقائياً أثناء كل دورة (يتطلب جلسة نشطة + webhook).</div>
+        <label>رابط منفذ التنفيذ (webhook)</label>
+        <input type="url" id="execUrl" placeholder="https://broker-api.example.com/orders" onchange="saveSettings()">
+      </div>
+      <div class="card">
+        <label>رابط إشعارات التقارير (اختياري)</label>
+        <input type="url" id="repUrl" placeholder="https://notify.example.com/report" onchange="saveSettings()">
+        <div class="muted" style="font-size:12px;margin-top:10px;line-height:1.8">
+          ⚠️ ملاحظة: لتسجيل الدخول الفعلي وتنفيذ العمليات على منصة التداول، يلزم دمج واجهة المنصة (API) أو أداة أتمتة متصفح خاصة بها. حالياً الوكيل يحفظ بيانات الدخول، يحافظ على الجلسة حية بطلبات دورية، ويرسل الأوامر للمنفذ المكوَّن عند التفعيل.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let cache = {};
+const FMT = new Intl.NumberFormat("en-US");
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function money(v){ return FMT.format(Number(v||0)); }
+function ts(v){ if(!v) return "-"; try { return new Date(v).toLocaleString("ar-SA"); } catch(e){ return v; } }
+
+async function api(path, opts){
+  const r = await fetch(path, Object.assign({headers:{"Content-Type":"application/json"}}, opts||{}));
+  return r.json();
+}
+
+async function loadStatus(){
+  try {
+    const s = await api("/api/status");
+    const pill = $("stratPill");
+    pill.textContent = s.strategy_connected ? "الاستراتيجية: متصلة ✅" : "الاستراتيجية: غير متصلة ❌";
+    pill.className = "pill " + (s.strategy_connected ? "online" : "offline");
+    const sp = $("sessPill");
+    const st = s.session || "off";
+    sp.textContent = st === "active" ? "الجلسة: نشطة ✅" : st === "awaiting_otp" ? "الجلسة: بانتظار OTP" : "الجلسة: غير متصلة";
+    sp.className = "pill " + (st === "active" ? "online" : "offline");
+    $("autoPill").textContent = "تنفيذ تلقائي: " + (s.auto_execute ? "مفعّل" : "معطّل");
+    $("autoPill").className = "pill " + (s.auto_execute ? "online" : "offline");
+    const lr = s.last_report;
+    if (lr) {
+      $("lastCycle").textContent = "آخر دورة: " + ts(lr.at);
+      $("reportLog").innerHTML = lr.lines.map(l => `<p>${esc(l)}</p>`).join("");
+    }
+    if (s.session_url) $("platUrl").value = s.session_url;
+  } catch(e){}
+}
+
+async function loadAll(){
+  await loadStatus();
+  try {
+    const p = await api("/api/portfolio");
+    $("mPort").textContent = money(p.value) + " ر.س";
+    $("mPos").textContent = p.portfolio.length;
+    $("portTb").innerHTML = p.portfolio.map(x =>
+      `<tr><td><b>${esc(x.company)}</b></td><td>${esc(x.sector||"-")}</td><td>${money(x.amount)} ر.س</td><td class="muted">${ts(x.updated_at)}</td></tr>`
+    ).join("");
+    $("portEmpty").style.display = p.portfolio.length ? "none" : "block";
+  } catch(e){}
+  try {
+    const st = await api("/api/strategy");
+    const s = st.strategy || {};
+    const m = s.market || {};
+    $("mRegime").textContent = m.regime || "-";
+    $("mSent").textContent = (m.sentiment>=0?"+":"") + (m.sentiment||0) + "%";
+  } catch(e){}
+  try {
+    const o = await api("/api/orders");
+    const list = o.orders || [];
+    $("mPending").textContent = list.filter(x=>x.status==="pending").length;
+    $("decTb").innerHTML = list.map(r => {
+      const stt = r.status === "pending" ? `<span class="badge pending">بانتظار التنفيذ</span>` :
+        r.status === "kept" ? `<span class="badge hold">مُبقى</span>` : `<span class="badge watch">مراقبة</span>`;
+      const al = r.alignment === "aligned" ? `<span class="badge buy">متوافق</span>` :
+        r.alignment === "conflict" ? `<span class="badge sell">تعارض</span>` : `<span class="badge watch">مراقبة</span>`;
+      const btns = r.side === "buy" || r.side === "sell" ? (r.status==="pending" ?
+        `<button class="small green" onclick="confirmOrder('${r.id}')">تأكيد التنفيذ</button> <button class="small red" onclick="cancelOrder('${r.id}')">إلغاء</button>` : "") : "";
+      return `<tr><td><b>${esc(r.company)}</b></td><td><span class="badge ${r.side==="buy"?"buy":r.side==="sell"?"sell":"hold"}">${r.side==="buy"?"شراء":r.side==="sell"?"بيع":"إبقاء"}</span></td><td>${esc(r.type)}</td><td>${r.amount?money(r.amount)+" ر.س":"-"}</td><td>${al}</td><td>${stt}</td><td class="muted" style="font-size:11.5px">${esc(r.reason)}</td><td style="white-space:nowrap">${btns}</td></tr>`;
+    }).join("");
+    $("decEmpty").style.display = list.length ? "none" : "block";
+  } catch(e){}
+  try {
+    const h = await api("/api/history");
+    $("histTb").innerHTML = (h.history||[]).slice().reverse().map(x =>
+      `<tr><td class="muted">${ts(x.executed_at||x.cancelled_at)}</td><td><b>${esc(x.company)}</b></td><td><span class="badge ${x.side==="buy"?"buy":"sell"}">${x.side==="buy"?"شراء":"بيع"}</span></td><td>${money(x.amount)} ر.س</td><td>${esc(x.result||"")} ${x.executor_response?`<span class="muted">${esc(x.executor_response)}</span>`:""}</td></tr>`
+    ).join("");
+  } catch(e){}
+}
+
+async function runCycle(){
+  $("mPending").textContent = "…";
+  try { await api("/api/run", {method:"POST"}); } catch(e){}
+  await loadAll();
+}
+
+async function doLogin(){
+  const body = {url:$("platUrl").value.trim(), username:$("platUser").value.trim(), password:$("platPass").value.trim()};
+  if(!body.url || !body.username || !body.password) { alert("أدخل الرابط واسم المستخدم وكلمة المرور"); return; }
+  $("loginBtn").disabled = true;
+  try {
+    const r = await api("/api/login", {method:"POST", body: JSON.stringify(body)});
+    $("otpBtn").disabled = false;
+    $("sessInfo").textContent = r.message + (r.probe_code ? ` (استجابة المنصة HTTP ${r.probe_code})` : " (تعذر الوصول للمنصة حالياً)");
+  } catch(e){ alert("فشل: " + e.message); }
+  $("loginBtn").disabled = false;
+  await loadStatus();
+}
+
+async function doOtp(){
+  const otp = $("otpInput").value.trim();
+  if(!otp) { alert("أدخل رمز OTP"); return; }
+  $("otpBtn").disabled = true;
+  try {
+    const r = await api("/api/otp", {method:"POST", body: JSON.stringify({otp})});
+    $("sessInfo").textContent = r.message;
+  } catch(e){ alert("فشل: " + e.message); }
+  $("otpBtn").disabled = false;
+  await loadStatus();
+}
+
+async function doLogout(){
+  if(!confirm("تسجيل الخروج من الجلسة؟")) return;
+  await api("/api/logout", {method:"POST"});
+  await loadStatus();
+}
+
+async function confirmOrder(id){
+  if(!confirm("تأكيد تنفيذ هذا الأمر يدوياً؟")) return;
+  await api("/api/confirm", {method:"POST", body: JSON.stringify({id})});
+  await loadAll();
+}
+
+async function cancelOrder(id){
+  if(!confirm("إلغاء هذا الأمر؟")) return;
+  await api("/api/cancel", {method:"POST", body: JSON.stringify({id})});
+  await loadAll();
+}
+
+async function saveSettings(){
+  await api("/api/settings", {method:"POST", body: JSON.stringify({
+    auto_execute: $("autoExec").checked,
+    executor_webhook: $("execUrl").value.trim(),
+    report_webhook: $("repUrl").value.trim(),
+  })});
+  await loadStatus();
+}
+
+async function doClear(){
+  if(!confirm("مسح المحفظة والأوامر والجلسة نهائياً؟")) return;
+  await api("/api/clear", {method:"POST"});
+  $("platPass").value=""; $("otpInput").value="";
+  await loadAll();
+}
+
+function saveForm(){}
+
+setInterval(loadAll, 60000);
+loadAll();
+</script>
+</body>
+</html>
